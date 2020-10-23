@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<script language="JavaScript">
+    setTimeout(function(){location.reload()},1000);
+</script>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="Content-Language" content="zh-cn" />
+    <!-- <meta http-equiv="refresh" content="5"> -->
+    <title>{{ .title }}</title>
+
+    <style type="text/css">
+        p {font-size:20px;}
+        body {background-color:#e8e8e8}
+        table,th,td {border:1px solid blue;text-align:center} 
+        table.singlineBorder {border-collapse:collapse;}
+        table.widthPercent30 {width:30%}
+        th.height50px {height:50px}
+        td.greenBg {color:#00aa00;background-color:#ccc}
+     
+        table.niceTable 
+        {
+         width:30%;
+         border-collapse:collapse;
+         font-family:"Trebuchet MS", Arial, Helvetica, sans-serif;
+        }
+        table.niceTable td,table.niceTable th
+        {
+         padding:3px 7px 2px 7px;
+         border:3px solid #98bf21;
+        }
+        table.niceTable th
+        {
+         color:white;
+         background-color:#A7C942;
+        }
+        table.niceTable tr.light td {background-color:#EAF2D3;}
+    </style>
+</head>
+
+
+<body style="background-color:#CCCCCC;">
+<center>
+    <h1>Data Relay</h1>
+
+    <table cellpadding="10px" class="niceTable">
+    <tr>
+        <th><p>名称</p></th>
+        <th><p>类型</p></th>
+        <th><p>地址</p></th>
+        <th><p>端口</p></th>
+        <th><p>发送帧率</p></th>
+        <th><p>转发帧率</p></th>
+        <th><p>接收帧率</p></th>
+    </tr>
+    {{ with .states}}
+        {{ range . }}
+
+        {{ if gt .RecvFPS 0 }}
+            <tr class="light">
+        {{ else }}
+            <tr>
+        {{ end }}
+            <td><p>{{ .Key }}</p></td>
+            <td><p>{{ .Type }}</p></td>
+            <td><p>{{ .IP }}</p></td>
+            <td><p>{{ .Port }}</p></td>
+            <td><p>{{ .SendFPS }}</p></td>
+            <td><p>{{ .RelayFPS }}</p></td>
+            <td><p>{{ .RecvFPS }}</p></td>
+        </tr>
+        {{ end }}
+    {{ end }}
+    </table>
+</center>
+</body>
+</html>
