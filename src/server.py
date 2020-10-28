@@ -10,7 +10,8 @@ from dislam.msg import DiSCO
 
 import base64
 import json
-from informer import Informer
+from informer import Informer, config
+config.PUBLICT_IP = '42.192.10.208'#'123.56.58.245'
 robot_id = '999999' # server ID
 dest = '111111' # to robot ID
 

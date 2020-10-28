@@ -88,25 +88,40 @@ class Informer():
         self.socket_dict['message'].sendall(data)
 
     def message_recv(self):
+        buffer_data = bytes()
         while True:
             data, addr = self.socket_dict['message'].recvfrom(655350)
+            # print('Fuck you !')
             # print('data len:', len(data))
-            if len(data) % 43762 == 0:
-                for i in range(len(data)//43762):
-                    json_data = json.loads(data[i*43762:(i+1)*43762].decode('utf-8'))
-                    self.parse_message(json_data)
+            buffer_data += data
+            if len(buffer_data) % 43762 == 0:
+                for i in range(len(buffer_data)//43762):
+                    try:
+                        json_data = json.loads(buffer_data[i*43762:(i+1)*43762].decode('utf-8'))
+                        self.parse_message(json_data)
+                    except:
+                        pass
+                buffer_data = bytes()
                 continue
-            if len(data) % 10996 == 0:
-                for i in range(len(data)//10996):
-                    json_data = json.loads(data[i*10996:(i+1)*10996].decode('utf-8'))
-                    self.parse_message(json_data)
+            if len(buffer_data) % 10996 == 0:
+                for i in range(len(buffer_data)//10996):
+                    try:
+                        json_data = json.loads(buffer_data[i*10996:(i+1)*10996].decode('utf-8'))
+                        self.parse_message(json_data)
+                    except:
+                        pass
+                buffer_data = bytes()
+                continue
+            if len(buffer_data) > 43762*5:
+                buffer_data = bytes()
+                print("Out of memory !!!")
                 continue
             
-            try:
-                json_data = json.loads(data.decode('utf-8'))
-                self.parse_message(json_data)
-            except:
-                print('Error in message_recv')
+            # try:
+            #     json_data = json.loads(data.decode('utf-8'))
+            #     self.parse_message(json_data)
+            # except:
+            #     print('Error in message_recv')
 
     def parse_message(self, message):
         message_type = message['Mtype']

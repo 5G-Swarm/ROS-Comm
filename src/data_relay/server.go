@@ -75,7 +75,15 @@ func readTCP(socket *net.TCPListener, key string){
 // TCP step 2
 func handleTCP(conn net.Conn, ip string, port int, remoteAddr net.Addr, key string){
 	defer conn.Close()
+	buffer_data := make([]byte, 0)
+	buffer_index := 0
+	clear_flag := false
 	for {
+		if clear_flag {
+			clear_flag = false
+			buffer_data = make([]byte, 0)
+			buffer_index = 0
+		}
 		data := make([]byte, 65535*5)
 		n, err := conn.Read(data)
 		if err == io.EOF || n == 0{
@@ -87,15 +95,41 @@ func handleTCP(conn net.Conn, ip string, port int, remoteAddr net.Addr, key stri
 		/*
 		 * error type message
 		 */
+		//fmt.Println("11111111111111", buffer_index)
+		if buffer_index > 65535 {
+			clear_flag = true
+			continue
+		}
 		if err := json.Unmarshal(data[:n], &message); err != nil {
 			//go relayTCP(data, n, remoteAddr, key)
 			// DO NOTHING
-			fmt.Println("err:", err)
+			//fmt.Println("json.Unmarshal err:", err)
+			buffer_data = append(buffer_data, data[:n]...)
+			buffer_index = buffer_index+n
+			//fmt.Println("DEBUG:", data[:n])
+			//fmt.Println("buffer_index:", buffer_index)
+			if buffer_index == 43762 || buffer_index == 10996 {
+				fmt.Println(buffer_index, "！！！！！")
+				if err2 := json.Unmarshal(buffer_data[:buffer_index], &message); err2 != nil {
+					fmt.Println("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW", err2)
+					fmt.Println("DEBUG:", buffer_data)
+					buffer_data = make([]byte, 0)
+					buffer_index = 0
+					continue
+				}
+				//fmt.Println("333333333333333333333333")
+				//buffer_data = make([]byte, 0)
+				//buffer_index = 0
+				clear_flag = true
+			} else {
+				continue
+			}
 		}
 		checkErr(err)
 		/*
 		 * normal type message
 		 */
+		//fmt.Println("5555555555555555555")
 		// register type message
 		if message.Mtype == "register" {
 			fmt.Printf("Register <%s:%s> as %s\n", key, message.Id, message.Data)
@@ -139,8 +173,13 @@ func handleTCP(conn net.Conn, ip string, port int, remoteAddr net.Addr, key stri
 			TCPRelayCnt.Store(message.Id+":"+key, 0)
 			TCPRecvCnt.Store(message.Id+":"+key, 0)
 		} else { // other types message
-			go relayTCP(data, n, message, key)
+			if clear_flag {
+				go relayTCP(buffer_data, buffer_index, message, key)
+			} else {
+				go relayTCP(data, n, message, key)
+			}
 		}
+		//fmt.Println("8888888888888888888")
 	}
 	// out of for, loose connection
 	fmt.Printf("Close TCP connection <%s:%d> %s\n", ip, port, key)
@@ -166,6 +205,7 @@ func handleTCP(conn net.Conn, ip string, port int, remoteAddr net.Addr, key stri
 		}
 		return true
 	})
+	fmt.Println("Finish TCP")
 }
 
 // TCP step 3
