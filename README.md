@@ -1,5 +1,5 @@
 # DiSLAM
-Distributed SLAM with DiSCO and GEM
+Distributed SLAM Communication Template
 
 ### Installation
 ```
