@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+import "std_msgs.proto";
+
+package sensor_msgs;
+option go_package="data_relay/proto/sensor_msgs";
+
+message PointCloud2 {
+    optional std_msgs.Header header       = 1;
+    optional uint32          height       = 2;
+    optional uint32          width        = 3;
+    repeated PointField      fields       = 4;
+    optional bool            is_bigendian = 5;
+    optional uint32          point_step   = 6;
+    optional uint32          row_step     = 7;
+    repeated uint32          data         = 8;
+    optional bool            is_dense     = 9;
+}
+
+message PointField {
+    optional uint32 INT8     = 1;
+    optional uint32 UINT8    = 2;
+    optional uint32 INT16    = 3;
+    optional uint32 UINT16   = 4;
+    optional uint32 INT32    = 5;
+    optional uint32 UINT32   = 6;
+    optional uint32 FLOAT32  = 7;
+    optional uint32 FLOAT64  = 8;
+    optional string name     = 9;
+    optional uint32 offset   = 10;
+    optional uint32 datatype = 11;
+    optional uint32 count    = 12;
+}
+
+message Image {
+    optional std_msgs.Header header       = 1;
+    optional uint32          height       = 2;
+    optional uint32          width        = 3;
+    optional string          encoding     = 4;
+    optional uint32          is_bigendian = 5;
+    optional uint32          step         = 6;
+    repeated uint32          data         = 7;
+}

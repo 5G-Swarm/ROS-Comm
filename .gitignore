@@ -1,0 +1,9 @@
+# python
+__pycache__
+*pb2.py
+
+# vscode
+.vscode/
+
+# go protobuf out
+*.go

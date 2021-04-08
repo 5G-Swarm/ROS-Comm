@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from time import sleep
 import numpy as np
 import rospy
 from rospy.core import xmlrpcapi
@@ -10,8 +11,9 @@ from dislam.msg import DiSCO
 
 import base64
 import json
-from informer import Informer, config
-config.PUBLICT_IP = '42.192.10.208'#'123.56.58.245'
+from informer import Informer
+from proto.python_out import DiSLAM_pb2
+from config import cfg_robot2
 robot_id = '999999' # server ID
 dest = '111111' # to robot ID
 
@@ -27,31 +29,34 @@ sig_flag = False
 
 class Server(Informer):
     def parse_message(self, message):
-        global x_array, y_array, z_array, sig_array, x_flag, y_flag, z_flag, sig_flag
-        message_type = message['Mtype']
-        pri = message['Pri']
-        robot_id = message['Id']
-        dest_id = message['Dest']
-        data = message['Data']
-        # print('Get data:', message_type, robot_id, len(data))
-        data = bytes(data, 'utf-8')
-        data = base64.b64decode(data)
-        data = np.frombuffer(data, dtype=np.float64)
-        if message_type == 'x':
-            x_array = data
-            x_flag = True
-        elif message_type == 'y':
-            y_array = data
-            y_flag = True
-        elif message_type == 'z':
-            z_array = data
-            z_flag = True
-        elif message_type == 'sig':
-            sig_array = data
-            sig_flag = True
+        # global x_array, y_array, z_array, sig_array, x_flag, y_flag, z_flag, sig_flag
+        # message_type = message['Mtype']
+        # pri = message['Pri']
+        # robot_id = message['Id']
+        # dest_id = message['Dest']
+        # data = message['Data']
+        # # print('Get data:', message_type, robot_id, len(data))
+        # data = bytes(data, 'utf-8')
+        # data = base64.b64decode(data)
+        # data = np.frombuffer(data, dtype=np.float64)
+        # if message_type == 'x':
+        #     x_array = data
+        #     x_flag = True
+        # elif message_type == 'y':
+        #     y_array = data
+        #     y_flag = True
+        # elif message_type == 'z':
+        #     z_array = data
+        #     z_flag = True
+        # elif message_type == 'sig':
+        #     sig_array = data
+        #     sig_flag = True
+        msg = DiSLAM_pb2.DiSCO()
+        msg.ParseFromString(message)
+        print("Get msg:", msg)
 
 # Receive
-ifm = Server(robot_id, is_server=True, block=True)
+ifm = Server(cfg_robot2, block=True)
 
 def broadcaster():
     global x_array, y_array, z_array, sig_array, x_flag, y_flag, z_flag, sig_flag
@@ -80,7 +85,5 @@ def broadcaster():
         rate.sleep()
 
 if __name__ == '__main__':
-    try:
-        broadcaster()
-    except rospy.ROSInterruptException:
-        pass
+    while True:
+        sleep(1)

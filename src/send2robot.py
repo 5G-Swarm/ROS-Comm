@@ -23,7 +23,7 @@ def broadcaster():
     pc_msg = pc2.create_cloud_xyz32(header, cloud_points)
     disco_msg.LocalMap = pc_msg
 
-    rate = rospy.Rate(2) # 10hz
+    rate = rospy.Rate(3) # 10hz
     while not rospy.is_shutdown():
         pub.publish(disco_msg)
         print("send to robot")

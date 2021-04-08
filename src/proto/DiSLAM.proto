@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+import "geometry_msgs.proto";
+import "sensor_msgs.proto";
+
+package DiSLAM;
+option go_package="data_relay/proto/DiSLAM";
+
+message DiSCO {
+    repeated float              fftr      = 1;
+    repeated float              ffti      = 2;
+    repeated float              signature = 3;
+    optional geometry_msgs.Pose pose      = 4;
+}
+
+message InterPRs {
+    optional uint32  seq      = 1;
+    repeated InterPR InterPRs = 2;
+}
+
+message InterPR {
+    optional int64                   id0     = 1;
+    optional int64                   id1     = 2;
+    optional geometry_msgs.Pose      id0pose = 3;
+    optional sensor_msgs.PointCloud2 keyfrom = 4;
+}
+
+message SubMap {
+    optional sensor_msgs.PointCloud2 submap     = 1;
+    optional sensor_msgs.PointCloud2 keyframePC = 2;
+    optional sensor_msgs.Image       orthoImage = 3;
+    optional geometry_msgs.Pose      pose       = 4;
+}

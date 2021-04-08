@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package std_msgs;
+option go_package="data_relay/proto/std_msgs";
+
+message Header {
+    optional uint32 seq      = 1;
+    optional time   stamp    = 2;
+    optional string frame_id = 3;
+}
+
+message time {
+    optional int64 sec  = 1;
+    optional int64 nsec = 2;
+}
