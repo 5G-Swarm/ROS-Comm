@@ -11,6 +11,7 @@ from proto.python_out import reg_msgs_pb2
 class Informer():
     def __init__(self, cfg, block=True):
         self.cfg = cfg
+        assert cfg['robot_id'] != cfg['random_dest'], f"Cannot set robot ID as random_dest id {cfg['random_dest']}!"
         self.robot_id = cfg['robot_id']
         self.block = block
         self.register_keys = list(self.cfg['port_dict'].keys())
@@ -25,8 +26,10 @@ class Informer():
 
         for key in self.register_keys:
             self.message_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.message_socket.bind(('127.0.0.1', self.cfg['bind_port'][key]))
+            # self.message_socket.bind(('localhost', self.cfg['bind_port'][key]))
+            # print("[-] bind pass")
             self.connect_state[key] = self.message_socket.connect((self.cfg['public_ip'], self.port_dict[key]))
+            print("[-] connect pass")
 
             self.socket_dict[key] = self.message_socket
             # self.data_dict[key] = utils.encode_message(
@@ -108,8 +111,10 @@ class Informer():
 
 
     def send(self, data):
+        print("data len:", len(data))
         data_len = len(data).to_bytes(self.cfg['head_length'], 'big')
         data = data_len + data
+        print("send data", data[:20], data[-20:])
         self.socket_dict['msg'].sendall(data)
 
 
@@ -117,30 +122,57 @@ class Informer():
 #           Message Recv             #
 ######################################
 
-    def message_recv(self):
-        buffer_data = bytes()
+    def msg_recv(self):
+        send_data = bytes()
         data_cache = bytes()
         data_length = 0
+
         while True:
             if self._cls_trd:
                 break
-            try:
-                data, _ = self.socket_dict['message'].recvfrom(4096, 0x40)
-                buffer_data += data
-            except BlockingIOError as e:
-                pass
+
+            data = self.socket_dict['msg'].recv(4096)
+            # print("real data length is", len(data))
+            # print("real data", data[:20], data[-20:])
+            send_data += data
+
             if len(data_cache):
-                data = data_cache + data
+                # print("there is some cache...")
+                send_data = data_cache + send_data
                 data_cache = bytes()
-            if not data_length:
-                data_length = int.from_bytes(data[:self.cfg['head_length']], 'big')
-            while True:
-                if len(data) < data_length:
-                    data_cache += data
-                    break
-                send_data = data[:data_length]
-                data = data[data_length:]
-                self.parse_message(send_data)
+
+            while len(send_data):
+                # print("len(send_data):", len(send_data), send_data)
+                if not data_length:
+                    if len(send_data) < self.cfg['head_length']:
+                        data_cache += send_data
+                        send_data = bytes()
+                        # print("Got cache because of length ifm")
+                    else:
+                        data_length = int.from_bytes(send_data[:self.cfg['head_length']], 'big')
+                        # print("resource data_length", send_data[:self.cfg['head_length']])
+                        # print("data_length", data_length)
+                        # print("data_length byte", send_data[:20], send_data[:self.cfg['head_length']])
+                        
+                        send_data = send_data[self.cfg['head_length']:]
+                        # # check for empty ifm
+                        # if data_length:
+                        #     send_data = send_data[self.cfg['head_length']:]
+                        # else:
+                        #     send_data = bytes()
+                        
+                elif len(send_data) < data_length:
+                    data_cache += send_data
+                    send_data = bytes()
+                    print("Got cache because of half data")
+                else:
+                    print("successful receive")
+                    self.parse_message(send_data[:data_length])
+                    send_data = send_data[data_length:]
+                    # print("data remain is ", send_data[:20])
+                    data_length = 0
+            
+            
             # data, _ = self.socket_dict['message'].recvfrom(655350)
             # print('data len:', len(data))
             # if len(buffer_data) % 43762 == 0:
@@ -185,4 +217,6 @@ class Informer():
         self._cls_trd = True
         for i in self.trd_list:
             del i
+        for i in self.message_socket:
+            i.close()
         

@@ -13,7 +13,7 @@ import base64
 import json
 from informer import Informer
 from proto.python_out import DiSLAM_pb2
-from config import cfg_robot2
+from config import cfg_server
 robot_id = '999999' # server ID
 dest = '111111' # to robot ID
 
@@ -29,61 +29,41 @@ sig_flag = False
 
 class Server(Informer):
     def parse_message(self, message):
-        # global x_array, y_array, z_array, sig_array, x_flag, y_flag, z_flag, sig_flag
-        # message_type = message['Mtype']
-        # pri = message['Pri']
-        # robot_id = message['Id']
-        # dest_id = message['Dest']
-        # data = message['Data']
-        # # print('Get data:', message_type, robot_id, len(data))
-        # data = bytes(data, 'utf-8')
-        # data = base64.b64decode(data)
-        # data = np.frombuffer(data, dtype=np.float64)
-        # if message_type == 'x':
-        #     x_array = data
-        #     x_flag = True
-        # elif message_type == 'y':
-        #     y_array = data
-        #     y_flag = True
-        # elif message_type == 'z':
-        #     z_array = data
-        #     z_flag = True
-        # elif message_type == 'sig':
-        #     sig_array = data
-        #     sig_flag = True
         msg = DiSLAM_pb2.DiSCO()
         msg.ParseFromString(message)
-        print("Get msg:", msg)
+        # print("msg type:", type(msg))
+        print("Get msg:", msg.fftr[-1])
 
 # Receive
-ifm = Server(cfg_robot2, block=True)
+ifm = Server(cfg_server, block=True)
 
-def broadcaster():
-    global x_array, y_array, z_array, sig_array, x_flag, y_flag, z_flag, sig_flag
-    pub = rospy.Publisher('disco', DiSCO, queue_size=0)
-    rospy.init_node('broadcast2')
+# def broadcaster():
+#     global x_array, y_array, z_array, sig_array, x_flag, y_flag, z_flag, sig_flag
+#     pub = rospy.Publisher('disco', DiSCO, queue_size=0)
+#     rospy.init_node('broadcast2')
 
-    rate = rospy.Rate(2) # 10hz
-    while not rospy.is_shutdown():
-        if x_flag and y_flag and z_flag and sig_flag:
-            #filling pointcloud header
-            header = std_msgs.msg.Header()
-            header.stamp = rospy.Time.now()
-            header.frame_id = 'map'
-            disco_msg = DiSCO()
-            disco_msg.signature = sig_array
+#     rate = rospy.Rate(2) # 10hz
+#     while not rospy.is_shutdown():
+#         if x_flag and y_flag and z_flag and sig_flag:
+#             #filling pointcloud header
+#             header = std_msgs.msg.Header()
+#             header.stamp = rospy.Time.now()
+#             header.frame_id = 'map'
+#             disco_msg = DiSCO()
+#             disco_msg.signature = sig_array
 
-            points = np.stack([x_array, y_array, z_array]).T
-            cloud_points = points.tolist()
-            pc_msg = pc2.create_cloud_xyz32(header, cloud_points)
-            disco_msg.LocalMap = pc_msg
+#             points = np.stack([x_array, y_array, z_array]).T
+#             cloud_points = points.tolist()
+#             pc_msg = pc2.create_cloud_xyz32(header, cloud_points)
+#             disco_msg.LocalMap = pc_msg
 
-            #pub.publish(disco_msg)
-            rospy.loginfo("pub disco")
-            x_flag = y_flag = z_flag = sig_flag = False
+#             #pub.publish(disco_msg)
+#             rospy.loginfo("pub disco")
+#             x_flag = y_flag = z_flag = sig_flag = False
 
-        rate.sleep()
+#         rate.sleep()
 
 if __name__ == '__main__':
     while True:
+        # keep running for ifm receive thread work
         sleep(1)

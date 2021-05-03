@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import numpy as np
-import rospy
-from dislam.msg import DiSCO
+# import rospy
+# from dislam.msg import DiSCO
 
 from time import sleep
 import base64
@@ -23,6 +23,8 @@ ifm = Informer(cfg_robot1, block=True)
 #     send_data = json.dumps(send_data)
 #     return send_data.encode('utf-8')
 
+verification_num = 0
+
 def serialize_data():
     # info = message_pb2.RobotInfo()
     # info.mType       = mType
@@ -35,9 +37,12 @@ def serialize_data():
     #     pos.y = array[1][i]
     #     pos.z = array[2][i]
     info = DiSLAM_pb2.DiSCO()
-    for i in range(1024 * 500):
-        info.fftr.append(random.randint(0,9))
-    
+    global verification_num
+    for i in range(1 * 1024 * 128):
+        info.fftr.append(verification_num)
+        verification_num += 1
+        verification_num %= 65535
+    # print("ddddds", info)
     return info
 
 # sleep_time = 0.07#15
@@ -82,7 +87,7 @@ def listener():
     # rospy.spin()
     while True:
         callback()
-        sleep(1/10)
+        sleep(1/1)
 
 
 if __name__ == '__main__':
