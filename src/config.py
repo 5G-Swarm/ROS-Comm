@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 # PUBLICT_IP = '10.12.120.51'
-PUBLICT_IP = '1.15.69.36'
+# PUBLICT_IP = '1.15.69.36'
 # PUBLICT_IP = '127.0.0.1'
+PUBLICT_IP = '121.5.229.51'
 
 PORT_DICT = {
         'reg':10000,
@@ -60,7 +61,7 @@ cfg_robot2 = {
 cfg_server = {
         'robot_id':'000000',
         'dest':'111111',
-        'is_server':False,
+        'is_server':True,
         'public_ip':PUBLICT_IP,
         'port_dict':PORT_DICT,
         'recv_keys':RECV_KEYS,

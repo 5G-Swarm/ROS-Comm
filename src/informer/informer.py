@@ -164,7 +164,7 @@ class Informer():
                 elif len(send_data) < data_length:
                     data_cache += send_data
                     send_data = bytes()
-                    print("Got cache because of half data")
+                    # print("Got cache because of half data")
                 else:
                     print("successful receive")
                     self.parse_message(send_data[:data_length])

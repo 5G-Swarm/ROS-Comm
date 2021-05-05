@@ -13,7 +13,7 @@ import random
 from config import cfg_robot1, cfg_robot2
 
 # Sender
-ifm = Informer(cfg_robot1, block=True)
+ifm = Informer(cfg_robot2, block=True)
 
 # def get_data(array, Mtype='x'):
 #     send_data = {'Mtype':Mtype,
@@ -38,7 +38,7 @@ def serialize_data():
     #     pos.z = array[2][i]
     info = DiSLAM_pb2.DiSCO()
     global verification_num
-    for i in range(1 * 1024 * 128):
+    for i in range(1 * 1024 * 1):
         info.fftr.append(verification_num)
         verification_num += 1
         verification_num %= 65535
@@ -92,6 +92,3 @@ def listener():
 
 if __name__ == '__main__':
     listener()
-    print("SPIN STOPPED")
-    ifm.close()
-    print("CLOSED")
