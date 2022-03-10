@@ -14,8 +14,8 @@ class Informer():
         assert cfg['robot_id'] != cfg['random_dest'], f"Cannot set robot ID as random_dest id {cfg['random_dest']}!"
         self.robot_id = cfg['robot_id']
         self.block = block
-        self.register_keys = list(self.cfg['port_dict'].keys())
         self.port_dict = self.cfg['port_dict']
+        self.send_keys = self.cfg['send_keys']
         self.recv_keys = self.cfg['recv_keys']
         self.socket_dict = {}
         self.data_dict = {}
@@ -24,7 +24,7 @@ class Informer():
         self._cls_trd = False
         self.trd_list = []
 
-        for key in self.register_keys:
+        for key in self.send_keys:
             self.message_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             # self.message_socket.bind(('localhost', self.cfg['bind_port'][key]))
             # print("[-] bind pass")
@@ -61,6 +61,7 @@ class Informer():
                 sleep(1)
         print('Start to work...')
 
+        # registration
         self.register(self.cfg['dest'], self.cfg['bind_port']['msg'])
             
         # start receive threads
@@ -85,7 +86,7 @@ class Informer():
     def connect(self, key, sock):
         data = ''
         while len(data) < 1:
-        	data, address = sock.recvfrom(65535)
+            data, address = sock.recvfrom(65535)
         data = str(data, encoding = "utf-8")
         try:
             json_data = json.loads(data)
@@ -98,7 +99,7 @@ class Informer():
 
 
 ######################################
-#           Message Send             #
+#            Registration            #
 ######################################
 
     def register(self, dest_id, bind_port):
@@ -109,6 +110,9 @@ class Informer():
         reg_info.bind_port = self.cfg['bind_port']['msg']
         self.socket_dict['reg'].sendall(reg_info.SerializeToString())
 
+######################################
+#           Message Send             #
+######################################
 
     def send(self, data):
         print("data len:", len(data))

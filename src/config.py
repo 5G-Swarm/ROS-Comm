@@ -10,9 +10,8 @@ PORT_DICT = {
         'msg':10001,
 }
 
+SEND_KEYS = list(PORT_DICT.keys())
 RECV_KEYS = ['msg']
-
-REGISTER_KEYS = list(PORT_DICT.keys())
 
 HEAD_LENGTH = 8
 
@@ -26,6 +25,7 @@ cfg_robot1 = {
         'is_server':False,
         'public_ip':PUBLICT_IP,
         'port_dict':PORT_DICT,
+        'send_keys':SEND_KEYS,
         'recv_keys':RECV_KEYS,
         'head_length':HEAD_LENGTH,
         'random_dest':RANDOM_DEST,
