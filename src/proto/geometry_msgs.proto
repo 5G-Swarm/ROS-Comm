@@ -4,19 +4,19 @@ package geometry_msgs;
 option go_package="data_relay/proto/geometry_msgs";
 
 message Pose {
-    optional Point      position    = 1;
-    optional Quaternion orientation = 2;
+    Point      position    = 1;
+    Quaternion orientation = 2;
 }
 
 message Point{
-    optional double x = 1;
-    optional double y = 2;
-    optional double z = 3;
+    double x = 1;
+    double y = 2;
+    double z = 3;
 }
 
 message Quaternion{
-    optional double x = 1;
-    optional double y = 2;
-    optional double z = 3;
-    optional double w = 4;
+    double x = 1;
+    double y = 2;
+    double z = 3;
+    double w = 4;
 }

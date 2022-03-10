@@ -26,7 +26,7 @@ class Informer():
 
         for key in self.send_keys:
             self.message_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            # self.message_socket.bind(('localhost', self.cfg['bind_port'][key]))
+            self.message_socket.bind(('localhost', self.cfg['bind_port'][key]))
             # print("[-] bind pass")
             self.connect_state[key] = self.message_socket.connect((self.cfg['public_ip'], self.port_dict[key]))
             print("[-] connect pass")
@@ -55,9 +55,9 @@ class Informer():
         # wait for connecting
         if self.block:
             print('Waiting for connection ...')
-            while set(self.register_keys) != set(self.connect_state.keys()):
+            while set(self.send_keys) != set(self.connect_state.keys()):
                 # sleep(0.001)
-                print(set(self.register_keys), set(self.connect_state.keys()))
+                print(set(self.send_keys), set(self.connect_state.keys()))
                 sleep(1)
         print('Start to work...')
 
@@ -66,7 +66,7 @@ class Informer():
             
         # start receive threads
         for key in self.recv_keys:
-            if key in self.register_keys:
+            if key in self.send_keys:
                 try:
                     receive_func = getattr(self.__class__, key+'_recv')
                 except AttributeError:

@@ -4,8 +4,8 @@ package reg_msgs;
 option go_package="data_relay/proto/reg_msgs";
 
 message RegInfo{
-    optional string hostID    = 1;
-    optional string destID    = 2;
-    optional bool   is_server = 3;
-    optional int32  bind_port = 4;
+    string hostID    = 1;
+    string destID    = 2;
+    bool   is_server = 3;
+    int32  bind_port = 4;
 }

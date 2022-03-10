@@ -13,7 +13,7 @@ import random
 from config import cfg_robot1, cfg_robot2
 
 # Sender
-ifm = Informer(cfg_robot2, block=True)
+ifm = Informer(cfg_robot1, block=True)
 
 # def get_data(array, Mtype='x'):
 #     send_data = {'Mtype':Mtype,
