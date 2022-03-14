@@ -49,6 +49,7 @@ class Informer():
         # TODO
         self.register(self.cfg['dest'], 'msg')
         self.register(self.cfg['dest'], 'img')
+        sleep(0.1)
         # self.register(self.cfg['dest'], self.cfg['bind_port']['msg'])
         # self.register(self.cfg['dest'], self.cfg['bind_port']['img'])
             
@@ -95,6 +96,7 @@ class Informer():
         reg_info = reg_msgs_pb2.RegInfo()
         reg_info.hostID = self.robot_id
         reg_info.destID = dest_id
+        reg_info.key = key
         reg_info.is_server = self.cfg['is_server']
         # reg_info.bind_port = self.cfg['bind_port']['msg']
         # TODO

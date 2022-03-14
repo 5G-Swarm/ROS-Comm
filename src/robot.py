@@ -50,8 +50,8 @@ def listener():
     # rospy.spin()
     while True:
         callback_disco()
-        # callback_img()
-        sleep(1)
+        callback_img()
+        # sleep(1)
 
 if __name__ == '__main__':
     listener()
