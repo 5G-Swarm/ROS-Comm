@@ -29,18 +29,6 @@ def parse_img(message):
 
 
 class Server(Informer):
-    # def parse_message(message):
-    #     msg = DiSLAM_pb2.DiSCO()
-    #     msg.ParseFromString(message)
-    #     print("Get msg:", msg.signature)
-    
-    # def parse_img(message):
-    #     print("Get msg:",len(message))
-    #     nparr = np.fromstring(message, np.uint8)
-    #     img = cv2.imdecode(nparr,  cv2.IMREAD_COLOR)
-    #     cv2.imshow('Image',img)
-    #     cv2.waitKey(5)
-
     def img_recv(self):
         self.recv('img', parse_img)
 

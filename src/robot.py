@@ -23,7 +23,8 @@ verification_num = 0
 def serialize_data():
     global verification_num
     info = DiSLAM_pb2.DiSCO()
-    for i in range(1 * 1024 * 1):
+    # for i in range(1 * 1024 * 1):
+    for i in range(1 * 128 * 1):
         info.fftr.append(verification_num)
         info.ffti.append(verification_num)
 
@@ -50,7 +51,7 @@ def listener():
     # rospy.spin()
     while True:
         callback_disco()
-        callback_img()
+        # callback_img()
         # sleep(1)
 
 if __name__ == '__main__':
