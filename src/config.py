@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-# PUBLICT_IP = '127.0.0.1'
-PUBLICT_IP = '124.223.46.115'
+PUBLICT_IP = '127.0.0.1'
+# PUBLICT_IP = '124.223.46.115'
 
 PORT_DICT = {
         'reg':10000,
         'msg':10001,
         'img':10002,
-        # 'sync':10003,
 }
 
 SEND_KEYS = list(PORT_DICT.keys())

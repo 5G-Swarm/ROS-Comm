@@ -77,11 +77,8 @@ class Informer():
         reg_info.destID = dest_id
         reg_info.key = key
         reg_info.is_server = self.cfg['is_server']
-        # reg_info.bind_port = self.cfg['bind_port']['msg']
-        # TODO
-        # reg_info.bind_port = self.cfg['bind_port']['img']
         reg_info.bind_port = self.cfg['bind_port'][key]
-        self.socket_dict['reg'].sendall(reg_info.SerializeToString())
+        self.socket_dict[key].sendall(reg_info.SerializeToString())
 
 ######################################
 #           Message Send             #
@@ -93,7 +90,6 @@ class Informer():
         data = data_len + data
         # print("send data", data[:20], data[-20:])
         self.socket_dict[key].sendall(data)
-        print('send over!')
 
 
 ######################################
