@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 # import rospy
 # from dislam.msg import DiSCO
-from time import sleep, time
+import time
 from informer import Informer
 from proto.python_out import DiSLAM_pb2
 from config import cfg_robot1
@@ -15,16 +15,19 @@ class Client(Informer):
     def send_img(self, message):
         self.send(message, 'img')
 
+    def send_sync(self, message):
+        self.send(message, 'sync')
+
 # Sender
-ifm = Client(cfg_robot1, block=True)
+ifm = Client(cfg_robot1)
 
 verification_num = 0
+test_FPS = False
 
 def serialize_data():
     global verification_num
     info = DiSLAM_pb2.DiSCO()
-    # for i in range(1 * 1024 * 1):
-    for i in range(1 * 128 * 1):
+    for i in range(1 * 1024 * 1):
         info.fftr.append(verification_num)
         info.ffti.append(verification_num)
 
@@ -36,45 +39,45 @@ def serialize_data():
 def callback_disco():
     data = serialize_data()
     ifm.send_msg(data)
-    print("send data")
 
-def callback_ts():
-    data = str(time()).encode()
-    ifm.send_msg(data)
-    print("send data")
+def callback_sync():
+    data = str(time.time()).encode()
+    ifm.send_sync(data)
 
-def callback_img():
-    # img = np.random.randint(0, 255, (720, 1280, 3))
-    img = np.random.randint(0, 255, (300, 300, 3))
-    ret, jpeg = cv2.imencode('.jpg', img)
-    data = jpeg.tobytes()
-    ifm.send_img(data)
-    print("send data")
-
-def callback_video(img):
-    # img = cv2.resize(img, (320, 240))
+def callback_img(img):
     # img = cv2.resize(img, (320*4, 4*240))
     ret, jpeg = cv2.imencode('.jpg', img)
     data = jpeg.tobytes()
     ifm.send_img(data)
-    print("send data")
 
 def listener():
     # rospy.init_node('listener', anonymous=True)
     # rospy.Subscriber('disco', DiSCO, callback)
     # rospy.spin()
     video_reader = cv2.VideoCapture('video.mp4')
-    # img = cv2.imread('img.jpg')
 
     success, img = video_reader.read()
+    img = cv2.resize(img, (1280, 720))
+
+    if test_FPS:
+        cnt = 1
+        ts = time.time()
 
     while success:
     # while True:
-        # callback_disco()
-        callback_video(img)
-        callback_ts()
-        sleep(1/10)
+        callback_disco()
+        callback_img(img)
+        callback_sync()
         success, img = video_reader.read()
+        img = cv2.resize(img, (1280, 720))
+
+        if test_FPS:
+            cnt += 1
+            new_ts = time.time()
+            if (new_ts - ts) > 1:
+                print(cnt, '\n\n\n\n')
+                cnt = 0
+                ts = new_ts
 
 if __name__ == '__main__':
     listener()

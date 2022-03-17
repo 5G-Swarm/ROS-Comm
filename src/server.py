@@ -15,38 +15,40 @@ from proto.python_out import DiSLAM_pb2
 from config import cfg_server
 import time
 
-# def parse_message(message):
-#     msg = DiSLAM_pb2.DiSCO()
-#     msg.ParseFromString(message)
-#     print("Get msg:", msg.signature)
+def parse_message(message):
+    msg = DiSLAM_pb2.DiSCO()
+    msg.ParseFromString(message)
+    # print("Get msg:", msg.signature)
 
 delay = 0
-def parse_message(message):
+def parse_sync(message):
     global delay
     msg = message.decode()
     ts = float(msg)
-    # print("Get msg:", ts, 1000*(time.time() - ts))
     new_delay = 1000*(time.time() - ts)
     delay = delay * 0.5 + 0.5*new_delay
-    print(delay)
+    # print(delay)
 
 def parse_img(message):
-    print("Get img size:",len(message))
+    # print("Get img size:",len(message))
     nparr = np.frombuffer(message, np.uint8)
     img = cv2.imdecode(nparr,  cv2.IMREAD_COLOR)
     cv2.imshow('Image',img)
-    cv2.waitKey(5)
+    cv2.waitKey(1)
 
 
 class Server(Informer):
-    def img_recv(self):
-        self.recv('img', parse_img)
-
     def msg_recv(self):
         self.recv('msg', parse_message)
 
+    def img_recv(self):
+        self.recv('img', parse_img)
+
+    def sync_recv(self):
+        self.recv('sync', parse_sync)
+
 # Receive
-ifm = Server(cfg_server, block=True)
+ifm = Server(cfg_server)
 
 if __name__ == '__main__':
     while True:
