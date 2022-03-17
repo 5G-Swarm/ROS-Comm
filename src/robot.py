@@ -23,6 +23,8 @@ ifm = Client(cfg_robot1)
 
 verification_num = 0
 test_FPS = False
+videoShape = (320*1, 1*240)
+# videoShape = (1280, 720)
 
 def serialize_data():
     global verification_num
@@ -57,7 +59,7 @@ def listener():
     video_reader = cv2.VideoCapture('video.mp4')
 
     success, img = video_reader.read()
-    img = cv2.resize(img, (1280, 720))
+    img = cv2.resize(img, videoShape)
 
     if test_FPS:
         cnt = 1
@@ -65,11 +67,11 @@ def listener():
 
     while success:
     # while True:
-        callback_disco()
+        # callback_disco()
         callback_img(img)
-        callback_sync()
+        # callback_sync()
         success, img = video_reader.read()
-        img = cv2.resize(img, (1280, 720))
+        img = cv2.resize(img, videoShape)
 
         if test_FPS:
             cnt += 1

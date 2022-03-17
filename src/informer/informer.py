@@ -8,7 +8,6 @@ from proto.python_out import reg_msgs_pb2
 class Informer():
     def __init__(self, cfg):
         self.cfg = cfg
-        assert cfg['robot_id'] != cfg['random_dest'], f"Cannot set robot ID as random_dest id {cfg['random_dest']}!"
         self.robot_id = cfg['robot_id']
         self.port_dict = self.cfg['port_dict']
         self.send_keys = self.cfg['send_keys']

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-# PUBLICT_IP = '127.0.0.1'
-PUBLICT_IP = '124.223.46.115'
+PUBLICT_IP = '127.0.0.1'
+# PUBLICT_IP = '124.223.46.115'
 
 PORT_DICT = {
         'reg':10000,
