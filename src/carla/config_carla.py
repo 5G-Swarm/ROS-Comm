@@ -24,7 +24,7 @@ cfg_robot1 = {
         'public_ip':PUBLICT_IP,
         'port_dict':PORT_DICT,
         'send_keys':SEND_KEYS,
-        'recv_keys':[],
+        'recv_keys':RECV_KEYS,
         'head_length':HEAD_LENGTH,
         'bind_port':{
                 'reg':30000,

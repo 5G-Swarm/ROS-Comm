@@ -11,31 +11,13 @@ import carla
 import pygame
 try:
     import pygame
-    from pygame.locals import KMOD_CTRL
-    from pygame.locals import KMOD_SHIFT
-    from pygame.locals import K_0
-    from pygame.locals import K_9
-    from pygame.locals import K_BACKQUOTE
-    from pygame.locals import K_BACKSPACE
-    from pygame.locals import K_COMMA
     from pygame.locals import K_DOWN
-    from pygame.locals import K_ESCAPE
-    from pygame.locals import K_F1
     from pygame.locals import K_LEFT
-    from pygame.locals import K_PERIOD
     from pygame.locals import K_RIGHT
-    from pygame.locals import K_SLASH
     from pygame.locals import K_SPACE
-    from pygame.locals import K_TAB
     from pygame.locals import K_UP
     from pygame.locals import K_a
-    from pygame.locals import K_c
     from pygame.locals import K_d
-    from pygame.locals import K_h
-    from pygame.locals import K_m
-    from pygame.locals import K_p
-    from pygame.locals import K_q
-    from pygame.locals import K_r
     from pygame.locals import K_s
     from pygame.locals import K_w
 except ImportError:
@@ -48,6 +30,8 @@ import cv2
 from informer import Informer
 from config_carla import cfg_server
 
+from proto.python_out import carla_msgs_pb2
+
 delay = 0
 def parse_sync(message):
     global delay
@@ -58,14 +42,21 @@ def parse_sync(message):
     # print(delay)
 
 def parse_img(message):
-    # print("Get img size:",len(message))
     nparr = np.frombuffer(message, np.uint8)
     img = cv2.imdecode(nparr,  cv2.IMREAD_COLOR)
     cv2.imshow('Image',img)
     cv2.waitKey(1)
 
 
+def callback_cmd(cmd):
+    global ifm
+    data = cmd.SerializeToString()
+    ifm.send_msg(data)
+
 class Server(Informer):
+    def send_msg(self, message):
+        self.send(message, 'msg')
+
     def img_recv(self):
         self.recv('img', parse_img)
 
@@ -95,7 +86,7 @@ def parse_vehicle_wheel(joystick, clock):
 
     numAxes = joystick.get_numaxes()
     jsInputs = [float(joystick.get_axis(i)) for i in range(numAxes)]
-    print(jsInputs)
+
     jsButtons = [float(joystick.get_button(i)) for i in
                     range(joystick.get_numbuttons())]
 
@@ -127,6 +118,18 @@ def parse_vehicle_wheel(joystick, clock):
     control.reverse = control.gear < 0
     return control
 
+def carla_ctrl2pb(control):
+    cmd = carla_msgs_pb2.CtrlCmd()
+    cmd.throttle = control.throttle
+    cmd.steer = control.steer
+    cmd.brake = control.brake
+    cmd.hand_brake = control.hand_brake
+    cmd.reverse = control.reverse
+    cmd.manual_gear_shift = control.manual_gear_shift
+    cmd.gear = control.gear
+
+    return cmd
+
 
 if __name__ == '__main__':
     # force feedback
@@ -156,5 +159,7 @@ if __name__ == '__main__':
                 print("Joystick button released.")
 
         control = parse_vehicle_wheel(joystick, clock)
-        # vehicle.apply_control(control)
+        cmd = carla_ctrl2pb(control)
+        callback_cmd(cmd)
+
         clock.tick(20)
