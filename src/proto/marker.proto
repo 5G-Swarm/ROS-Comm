@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package reg_msgs;
+option go_package="data_relay/proto/marker_msgs";
+
+message MarkerList{
+    repeated Marker marker = 1;
+}
+
+message Marker{
+    uint32 id               = 1;
+    Position position       = 2;
+    Orientation orientation = 3;
+    Scale scale             = 4;
+    Color color             = 5;
+}
+
+message Position{
+    double x = 1;
+    double y = 2;
+    double z = 3;
+}
+
+message Orientation{
+    double x = 1;
+    double y = 2;
+    double z = 3;
+    double w = 4;
+}
+
+message Scale{
+    double x = 1;
+    double y = 2;
+    double z = 3;
+}
+
+message Color{
+    double r = 1;
+    double g = 2;
+    double b = 3;
+}
