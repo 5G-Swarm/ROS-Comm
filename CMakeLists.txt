@@ -1,11 +1,19 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(dislam)
+project(ros_comm)
 
-find_package(catkin REQUIRED COMPONENTS roscpp rospy message_generation std_msgs geometry_msgs sensor_msgs)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  rospy
+  message_generation
+  std_msgs
+  geometry_msgs
+  sensor_msgs
+  visualization_msgs
+  )
 
 add_message_files(
   FILES
-  DiSCO.msg
+  Pose2DArray.msg
 )
 
 #catkin_python_setup()
@@ -18,7 +26,6 @@ generate_messages(
 )
 
 catkin_package(
-  
   CATKIN_DEPENDS message_runtime   
 )
 
