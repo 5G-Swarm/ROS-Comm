@@ -8,10 +8,11 @@ PORT_DICT = {
         'msg':10001,
         'odm':10002,
         'path':10003,
+        'cmd':10004,
 }
 
 SEND_KEYS = list(PORT_DICT.keys())
-RECV_KEYS = ['msg', 'odm', 'path']
+RECV_KEYS = ['msg', 'odm', 'path', 'cmd']
 
 HEAD_LENGTH = 8
 
@@ -31,6 +32,7 @@ cfg_robot1 = {
                 'msg':30001,
                 'odm':30002,
                 'path':30003,
+                'cmd':30004,
         },
 }
 
@@ -48,5 +50,6 @@ cfg_server = {
                 'msg':50001,
                 'odm':50002,
                 'path':50003,
+                'cmd':50004,
         },
 }

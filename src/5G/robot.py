@@ -9,12 +9,12 @@ import numpy as np
 import rospy
 from visualization_msgs.msg import MarkerArray
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Pose2D
+from geometry_msgs.msg import Pose2D, Twist
 from ros_comm.msg import Pose2DArray
 
 import time
 from informer import Informer
-from proto.python_out import marker_pb2, geometry_msgs_pb2, path_msgs_pb2
+from proto.python_out import marker_pb2, geometry_msgs_pb2, path_msgs_pb2, cmd_msgs_pb2
 from config_5g import cfg_robot1
 
 global_path = None
@@ -43,7 +43,6 @@ class Client(Informer):
         self.send(message, 'odm')
     
     def path_recv(self):
-        print('get !!')
         self.recv('path', parse_path)
 
 def ros_marker2pb(ros_marker):
@@ -72,10 +71,9 @@ def parse_ros_marker_list(ros_marker_array):
     return marker_list
 
 def callback_mark_array(ros_marker_array):
-    print('get !!')
     marker_list = parse_ros_marker_list(ros_marker_array)
     sent_data = marker_list.SerializeToString()
-    print('send', len(sent_data))
+    # print('send', len(sent_data))
     ifm.send_msg(sent_data)
 
 
@@ -90,6 +88,12 @@ def ros_odometry2pb(odometry):
     pose.orientation.w = odometry.pose.pose.orientation.w
     return pose
 
+def ros_cmd2pb(ros_cmd):
+    cmd = cmd_msgs_pb2.Cmd()
+    cmd.v = ros_cmd.linear.x
+    cmd.w = ros_cmd.angular.z
+    return cmd
+
 def callback_odometry(odometry):
     # print(odometry)
     pose = ros_odometry2pb(odometry)
@@ -97,19 +101,24 @@ def callback_odometry(odometry):
     print('send', len(sent_data))
     ifm.send_odm(sent_data)
 
-
+def callback_cmd(ros_cmd):
+    cmd = ros_cmd2pb(ros_cmd)
+    sent_data = cmd.SerializeToString()
+    print('send cmd', len(sent_data))
+    ifm.send_odm(sent_data)
 
 if __name__ == '__main__':
     rospy.init_node('5g-transfer', anonymous=True)
     rospy.Subscriber('/detection/lidar_detector/objects_markers', MarkerArray, callback_mark_array)
     rospy.Subscriber('/base2map', Odometry, callback_odometry)
+    rospy.Subscriber('/cmd_vel', Twist, callback_cmd)
 
     path_pub = rospy.Publisher('global_path', Pose2DArray, queue_size=0)
 
     # Sender
     ifm = Client(cfg_robot1)
 
-    # rospy.spin()
-    rate = rospy.Rate(10)
-    while not rospy.is_shutdown():
-        rate.sleep()
+    rospy.spin()
+    # rate = rospy.Rate(10)
+    # while not rospy.is_shutdown():
+    #     rate.sleep()

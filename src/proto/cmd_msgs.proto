@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package cmd_msgs;
+option go_package="data_relay/proto/cmd_msgs";
+
+message Cmd{
+    double v = 1;
+    double w = 2;
+}

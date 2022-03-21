@@ -4,14 +4,14 @@ from os.path import join, dirname
 sys.path.insert(0, join(dirname(__file__), '../'))
 
 from informer import Informer
-from proto.python_out import marker_pb2, geometry_msgs_pb2
-from proto.python_out import path_msgs_pb2
+from proto.python_out import marker_pb2, geometry_msgs_pb2, path_msgs_pb2, cmd_msgs_pb2
 from config_5g import cfg_server
 import time
 import numpy as np
 
 global_marker_list = None
 global_odometry = None
+global_cmd = None
 
 def parse_message(message):
     global global_marker_list
@@ -25,12 +25,21 @@ def parse_odometry(message):
     odometry.ParseFromString(message)
     global_odometry = odometry
 
+def parse_cmd(message):
+    global global_cmd
+    cmd = cmd_msgs_pb2.Cmd()
+    cmd.ParseFromString(message)
+    global_cmd = cmd
+
 class Server(Informer):
     def msg_recv(self):
         self.recv('msg', parse_message)
 
     def odm_recv(self):
         self.recv('odm', parse_odometry)
+
+    def cmd_recv(self):
+        self.recv('cmd', parse_cmd)
 
     def send_path(self, message):
         self.send(message, 'path')
@@ -40,6 +49,7 @@ ifm = Server(cfg_server)
 
 
 def send_path(path_list):
+    global ifm
     path = path_msgs_pb2.Path()
     for i in range(len(path_list)):
         pose = path_msgs_pb2.Pose2D()
@@ -62,6 +72,9 @@ if __name__ == '__main__':
         if global_odometry is not None:
             print(global_odometry)
 
+        if global_cmd is not None:
+            print(global_cmd)
+
         path_list = np.random.rand(20, 3)
         send_path(path_list)
-        time.sleep(1)
+        time.sleep(0.5)
