@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import pygame
 import numpy as np
 from scipy.spatial.transform import Rotation as R
@@ -5,10 +8,8 @@ from icecream import ic as print
 import socket
 import threading
 import time
-
 import sys
-from os.path import join, dirname
-sys.path.insert(0, join(dirname(__file__), '../'))
+
 from informer import Informer
 from proto.python_out import marker_pb2, geometry_msgs_pb2, path_msgs_pb2, cmd_msgs_pb2
 from config_5g import cfg_server
@@ -71,9 +72,9 @@ class Receiver(object):
                 MAP_WIDTH, MAP_HEIGHT = DISPLAY_MAP.get_size()
                 offset = np.array([WINDOW_WIDTH//2 - MAP_WIDTH//2, WINDOW_HEIGHT//2 - MAP_HEIGHT//2])
                 global path_pos
-                path_pos = [np.array([float(pos.split(',')[0]), float(pos.split(',')[1])]) + offset
-                            for pos in data if pos != '']
-                print(path_pos, len(path_pos))
+                path_pos = np.array([np.array([float(pos.split(',')[0]), float(pos.split(',')[1])]) + offset
+                            for pos in data if pos != ''])
+                # print(path_pos, len(path_pos))
                 self.timeout = False
             except socket.timeout:
                 self.timeout = True
@@ -87,7 +88,20 @@ def parse_message(message):
     MAP_WIDTH, MAP_HEIGHT = DISPLAY_MAP.get_size()
     offset = np.array([WINDOW_WIDTH//2 - MAP_WIDTH//2, WINDOW_HEIGHT//2 - MAP_HEIGHT//2])
     for marker in marker_list.marker_list:
-        bounding_box.append(np.array([int(marker.pose.position.y*20+1165), int(741-20*marker.pose.position.x)]) + offset)
+        center_pos = np.array([int(1165 - marker.pose.position.y*20), int(741-20*marker.pose.position.x)]) + offset
+        try:
+            orientation = R.from_quat([marker.pose.orientation.x, marker.pose.orientation.y, marker.pose.orientation.z, marker.pose.orientation.w]).as_euler('xyz', degrees=False)[2]
+            orientation += np.pi / 2
+            height, width = 10*marker.scale.x, 10*marker.scale.y
+            vertex_A = center_pos + height*np.array([np.cos(orientation), np.sin(orientation)]) + width*np.array([-np.sin(orientation), np.cos(orientation)])
+            vertex_B = center_pos + height*np.array([np.cos(orientation), np.sin(orientation)]) - width*np.array([-np.sin(orientation), np.cos(orientation)])
+            vertex_C = center_pos - height*np.array([np.cos(orientation), np.sin(orientation)]) - width*np.array([-np.sin(orientation), np.cos(orientation)])
+            vertex_D = center_pos - height*np.array([np.cos(orientation), np.sin(orientation)]) + width*np.array([-np.sin(orientation), np.cos(orientation)])
+            bounding_box.append(np.array([vertex_A, vertex_B, vertex_C, vertex_D]))
+        except:
+            orientation = 0
+            height, width = 50, 30
+            pass
         # print(bounding_box)
 
 def parse_odometry(message):
@@ -102,7 +116,7 @@ def parse_odometry(message):
 
 def parse_cmd(message):
     global robot_cmd
-    print('grt cmd !!!')
+    # print('grt cmd !!!')
     cmd = cmd_msgs_pb2.Cmd()
     cmd.ParseFromString(message)
     robot_cmd = [[cmd.v, cmd.w]]
@@ -137,9 +151,15 @@ class Server(Informer):
 
 
 def sendGoal(goal):
-    print(goal, type(goal))
     goal_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    goal_sock.sendto(bytes(str(goal[0]) + ',' + str(goal[1]), 'ascii'), (HOST_ADDRESS, 23334))
+    if len(robot_pos) == 0:
+        goal_str = str(goal[0]) + ',' + str(goal[1])
+    else:
+        MAP_WIDTH, MAP_HEIGHT = DISPLAY_MAP.get_size()
+        offset = np.array([WINDOW_WIDTH//2 - MAP_WIDTH//2, WINDOW_HEIGHT//2 - MAP_HEIGHT//2])
+        pos = robot_pos[0] - offset
+        goal_str = str(goal[0]) + ',' + str(goal[1]) + ',' + str(pos[0]) + ',' + str(pos[1])
+    goal_sock.sendto(bytes(goal_str, 'ascii'), (HOST_ADDRESS, 23334))
 
 def screen2pos(x, y):
     MAP_WIDTH, MAP_HEIGHT = DISPLAY_MAP.get_size()
@@ -152,7 +172,6 @@ def pos2screen(x, y):
 def drawRobots():
     for pos, heading, cmd in zip(robot_pos, robot_heading, robot_cmd):
         pygame.draw.circle(SCREEN, GREEN, pos + map_offset, int(ROBOT_SIZE*2))
-        print('drawing')
         pygame.draw.line(SCREEN, BLUE, pos + map_offset, pos + map_offset + 100*cmd[0]*np.array([np.cos(heading+np.pi/2), np.sin(heading+np.pi/2)]), 5)
         
 def drawGoal():
@@ -167,12 +186,13 @@ def drawGoal():
 
 def drawBoundingBox():
     for pos in bounding_box:
-        x, y = pos + map_offset
-        pygame.draw.rect(SCREEN, BLUE, pygame.Rect(x, y, 60, 100), 10)
-        
+        # x, y = pos + map_offset
+        # pygame.draw.rect(SCREEN, BLUE, pygame.Rect(x, y, 60, 100), 10)
+        pygame.draw.lines(SCREEN, BLUE, True, pos + map_offset, 10)
+
 def drawPath():
     if len(path_pos) > 1:
-        pygame.draw.lines(SCREEN, RED, False, path_pos, 10)
+        pygame.draw.lines(SCREEN, RED, False, path_pos + map_offset, 10)
 
 def drawButton():
     # font settings
@@ -228,7 +248,9 @@ if __name__ == "__main__":
     except:
         pass
 
+    cnt = 0
     while True:
+        cnt += 1
         SCREEN.fill(GREY)
         drawMaps()
         drawGoal()
@@ -255,7 +277,6 @@ if __name__ == "__main__":
                 elif goal_setting:
                     goal_setting = False
                     robot_goal = mouse - map_offset
-                    sendGoal(screen2pos(*robot_goal))
                 # button: laser map
                 elif BUTTON_LASER_X <= mouse[0] <= BUTTON_LASER_X + BUTTON_WIDTH and BUTTON_LASER_Y <= mouse[1] <= BUTTON_LASER_Y + BUTTON_HEIGHT:
                     DISPLAY_MAP = LASER_MAP
@@ -273,5 +294,10 @@ if __name__ == "__main__":
                     end_pos = event.pos
                     map_offset = map_offset + end_pos - start_pos
                     start_pos = end_pos
+
+        # send goal
+        if robot_goal is not None:
+            if cnt % 10 == 0: 
+                sendGoal(screen2pos(*robot_goal))
 
         pygame.display.update()
