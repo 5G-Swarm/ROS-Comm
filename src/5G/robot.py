@@ -41,6 +41,9 @@ class Client(Informer):
     
     def send_odm(self, message):
         self.send(message, 'odm')
+
+    def send_cmd(self, message):
+        self.send(message, 'cmd')
     
     def path_recv(self):
         self.recv('path', parse_path)
@@ -98,14 +101,14 @@ def callback_odometry(odometry):
     # print(odometry)
     pose = ros_odometry2pb(odometry)
     sent_data = pose.SerializeToString()
-    print('send', len(sent_data))
+    # print('send', len(sent_data))
     ifm.send_odm(sent_data)
 
 def callback_cmd(ros_cmd):
     cmd = ros_cmd2pb(ros_cmd)
     sent_data = cmd.SerializeToString()
-    print('send cmd', len(sent_data))
-    ifm.send_odm(sent_data)
+    # print('send cmd', len(sent_data))
+    ifm.send_cmd(sent_data)
 
 if __name__ == '__main__':
     rospy.init_node('5g-transfer', anonymous=True)
@@ -114,11 +117,8 @@ if __name__ == '__main__':
     rospy.Subscriber('/cmd_vel', Twist, callback_cmd)
 
     path_pub = rospy.Publisher('global_path', Pose2DArray, queue_size=0)
-
-    # Sender
     ifm = Client(cfg_robot1)
-
-    rospy.spin()
-    # rate = rospy.Rate(10)
-    # while not rospy.is_shutdown():
-    #     rate.sleep()
+    # rospy.spin()
+    rate = rospy.Rate(1000)
+    while not rospy.is_shutdown():
+        rate.sleep()

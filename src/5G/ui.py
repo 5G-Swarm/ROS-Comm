@@ -1,5 +1,6 @@
 import pygame
 import numpy as np
+from scipy.spatial.transform import Rotation as R
 from icecream import ic as print
 import socket
 import threading
@@ -43,6 +44,8 @@ DISPLAY_MAP = LASER_MAP
 map_offset = np.array([0, 0])
 robot_goal = None
 robot_pos = []
+robot_heading = []
+robot_cmd = []
 bounding_box = []
 path_pos = []
 # flags
@@ -81,22 +84,31 @@ def parse_message(message):
     bounding_box = []
     marker_list = marker_pb2.MarkerList()
     marker_list.ParseFromString(message)
+    MAP_WIDTH, MAP_HEIGHT = DISPLAY_MAP.get_size()
+    offset = np.array([WINDOW_WIDTH//2 - MAP_WIDTH//2, WINDOW_HEIGHT//2 - MAP_HEIGHT//2])
     for marker in marker_list.marker_list:
-        bounding_box.append(marker.pose.position.x, marker.pose.position.y)
+        bounding_box.append(np.array([int(marker.pose.position.y*20+1165), int(741-20*marker.pose.position.x)]) + offset)
+        # print(bounding_box)
 
 def parse_odometry(message):
-    global robot_pos
+    global robot_pos, robot_heading
     odometry = geometry_msgs_pb2.Pose()
     odometry.ParseFromString(message)
-    robot_pos = [[odometry.position.x, odometry.position.y]]
+    MAP_WIDTH, MAP_HEIGHT = DISPLAY_MAP.get_size()
+    offset = np.array([WINDOW_WIDTH//2 - MAP_WIDTH//2, WINDOW_HEIGHT//2 - MAP_HEIGHT//2])
+    robot_pos = [np.array([int(odometry.position.y*20+1165), int(741-20*odometry.position.x)]) + offset]
+    robot_heading = [R.from_quat([odometry.orientation.x, odometry.orientation.y, odometry.orientation.z, odometry.orientation.w]).as_euler('xyz', degrees=False)[1]]
+    # print(robot_pos)
 
 def parse_cmd(message):
-    global global_cmd
+    global robot_cmd
+    print('grt cmd !!!')
     cmd = cmd_msgs_pb2.Cmd()
     cmd.ParseFromString(message)
-    global_cmd = cmd
+    robot_cmd = [[cmd.v, cmd.w]]
 
-def send_path(server, path_list):
+def send_path(path_list):
+    global ifm
     path = path_msgs_pb2.Path()
     for i in range(len(path_list)):
         pose = path_msgs_pb2.Pose2D()
@@ -107,8 +119,8 @@ def send_path(server, path_list):
         path.poses.append(pose)
 
     sent_data = path.SerializeToString()
-    print('send', len(sent_data))
-    server.send_path(sent_data)
+    # print('send', len(sent_data))
+    ifm.send_path(sent_data)
 
 class Server(Informer):
     def msg_recv(self):
@@ -117,8 +129,12 @@ class Server(Informer):
     def odm_recv(self):
         self.recv('odm', parse_odometry)
 
+    def cmd_recv(self):
+        self.recv('cmd', parse_cmd)
+
     def send_path(self, message):
         self.send(message, 'path')
+
 
 def sendGoal(goal):
     print(goal, type(goal))
@@ -134,21 +150,29 @@ def pos2screen(x, y):
     return x, y
 
 def drawRobots():
-    for pos in robot_pos:
-        pygame.draw.circle(SCREEN, BLUE, pos + map_offset, int(ROBOT_SIZE*2))
+    for pos, heading, cmd in zip(robot_pos, robot_heading, robot_cmd):
+        pygame.draw.circle(SCREEN, GREEN, pos + map_offset, int(ROBOT_SIZE*2))
+        print('drawing')
+        pygame.draw.line(SCREEN, BLUE, pos + map_offset, pos + map_offset + 100*cmd[0]*np.array([np.cos(heading+np.pi/2), np.sin(heading+np.pi/2)]), 5)
         
 def drawGoal():
     if robot_goal is not None:
-        pygame.draw.circle(SCREEN, GREEN, robot_goal + map_offset, int(ROBOT_SIZE*5))
+        # pygame.draw.circle(SCREEN, GREEN, robot_goal + map_offset, int(ROBOT_SIZE*2))
+        cicle = (robot_goal + map_offset)
+        marker_size = 20
+        width = 10
+        pygame.draw.line(SCREEN, RED, (cicle[0]-marker_size, cicle[1]-marker_size), (cicle[0]+marker_size, cicle[1]+marker_size), width)
+        pygame.draw.line(SCREEN, RED, (cicle[0]-marker_size, cicle[1]+marker_size), (cicle[0]+marker_size, cicle[1]-marker_size), width)
+
 
 def drawBoundingBox():
     for pos in bounding_box:
         x, y = pos + map_offset
-        pygame.draw.rect(SCREEN, RED, pygame.Rect(x, y, 60, 100), 10)
+        pygame.draw.rect(SCREEN, BLUE, pygame.Rect(x, y, 60, 100), 10)
         
 def drawPath():
     if len(path_pos) > 1:
-        pygame.draw.lines(SCREEN, GREEN, False, path_pos, 10)
+        pygame.draw.lines(SCREEN, RED, False, path_pos, 10)
 
 def drawButton():
     # font settings
