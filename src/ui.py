@@ -10,6 +10,7 @@ import threading
 import time
 import sys
 import math
+import cv2
 
 from informer import Informer
 from proto.python_out import marker_pb2, geometry_msgs_pb2, path_msgs_pb2, cmd_msgs_pb2
@@ -47,9 +48,13 @@ robot_heading = []
 robot_cmd = []
 bounding_box = []
 path_pos = []
+clicked_id = 0
+robot_img = None
 # flags
 map_draging = False
 goal_setting = False
+robot_clicked = False
+view_image = False
 
 class Receiver(object):
     def __init__(self, addr=HOST_ADDRESS, port=23333):
@@ -221,6 +226,38 @@ def drawButton():
         pygame.draw.rect(SCREEN, BUTTON_DARK, [BUTTON_SATELLITE_X, BUTTON_SATELLITE_Y, BUTTON_WIDTH, BUTTON_HEIGHT])
     SCREEN.blit(text, (BUTTON_SATELLITE_X+10, BUTTON_SATELLITE_Y+25))
 
+def drawMessageBox():
+    if robot_clicked:
+        # font settings
+        FONT = pygame.font.SysFont('Corbel', 75)
+
+        # get mouse position
+        mouse = pygame.mouse.get_pos()
+
+        # box
+        BOX_X, BOX_Y = robot_pos[clicked_id] + map_offset + np.array([25, -265])
+        BOX_WIDTH, BOX_HEIGHT = 350, 250
+        BOX_COLOR = (255, 255, 255)
+        pygame.draw.rect(SCREEN, BOX_COLOR, [BOX_X, BOX_Y, BOX_WIDTH, BOX_HEIGHT])
+
+        # button: view image
+        text = FONT.render('View Image', True, WHITE)
+        BUTTON_IMAGE_X, BUTTON_IMAGE_Y = robot_pos[clicked_id] + map_offset + np.array([50, -250])
+        if BUTTON_IMAGE_X <= mouse[0] <= BUTTON_IMAGE_X + BUTTON_WIDTH and BUTTON_IMAGE_Y <= mouse[1] <= BUTTON_IMAGE_Y + BUTTON_HEIGHT:
+            pygame.draw.rect(SCREEN, BUTTON_LIGHT, [BUTTON_IMAGE_X, BUTTON_IMAGE_Y, BUTTON_WIDTH, BUTTON_HEIGHT])
+        else:
+            pygame.draw.rect(SCREEN, BUTTON_DARK, [BUTTON_IMAGE_X, BUTTON_IMAGE_Y, BUTTON_WIDTH, BUTTON_HEIGHT])
+        SCREEN.blit(text, (BUTTON_IMAGE_X+10, BUTTON_IMAGE_Y+25))
+        # button: get id
+        text = FONT.render('Get ID', True, WHITE)
+        BUTTON_ID_X, BUTTON_ID_Y = robot_pos[clicked_id] + map_offset + np.array([50, -125])
+        if BUTTON_ID_X <= mouse[0] <= BUTTON_ID_X + BUTTON_WIDTH and BUTTON_ID_Y <= mouse[1] <= BUTTON_ID_Y + BUTTON_HEIGHT:
+            pygame.draw.rect(SCREEN, BUTTON_LIGHT, [BUTTON_ID_X, BUTTON_ID_Y, BUTTON_WIDTH, BUTTON_HEIGHT])
+        else:
+            pygame.draw.rect(SCREEN, BUTTON_DARK, [BUTTON_ID_X, BUTTON_ID_Y, BUTTON_WIDTH, BUTTON_HEIGHT])
+        SCREEN.blit(text, (BUTTON_ID_X+75, BUTTON_ID_Y+25))
+
+
 def drawMaps():
     WINDOW_WIDTH, WINDOW_HEIGHT = pygame.display.get_surface().get_size()
     MAP_WIDTH, MAP_HEIGHT = DISPLAY_MAP.get_size()
@@ -252,6 +289,7 @@ if __name__ == "__main__":
         drawBoundingBox()
         drawPath()
         drawButton()
+        drawMessageBox()
 
         for event in pygame.event.get():
             mods = pygame.key.get_mods()
@@ -278,9 +316,20 @@ if __name__ == "__main__":
                 elif BUTTON_SATELLITE_X <= mouse[0] <= BUTTON_SATELLITE_X + BUTTON_WIDTH and BUTTON_SATELLITE_Y <= mouse[1] <= BUTTON_SATELLITE_Y + BUTTON_HEIGHT:
                     DISPLAY_MAP = SATELLITE_MAP
                 # button: robot
+                if robot_clicked:
+                    # button: view image
+                    BUTTON_IMAGE_X, BUTTON_IMAGE_Y = robot_pos[clicked_id] + map_offset + np.array([50, -250])
+                    BUTTON_ID_X, BUTTON_ID_Y = robot_pos[clicked_id] + map_offset + np.array([50, -125])
+                    if BUTTON_IMAGE_X <= mouse[0] <= BUTTON_IMAGE_X + BUTTON_WIDTH and BUTTON_IMAGE_Y <= mouse[1] <= BUTTON_IMAGE_Y + BUTTON_HEIGHT:
+                        view_image = True
+                        print('show image')
+                    elif BUTTON_ID_X <= mouse[0] <= BUTTON_ID_X + BUTTON_WIDTH and BUTTON_ID_Y <= mouse[1] <= BUTTON_ID_Y + BUTTON_HEIGHT:
+                        print('get id')
+                robot_clicked = False
                 for pos in robot_pos:
-                    if math.dist(mouse, pos + map_offset) <= ROBOT_SIZE:
+                    if math.hypot(mouse[0] - (pos + map_offset)[0], mouse[1] - (pos + map_offset)[1]) <= ROBOT_SIZE:
                         print('click')
+                        robot_clicked = True
                         break
             elif event.type == pygame.MOUSEBUTTONUP and mods & pygame.KMOD_CTRL:
                 if event.button == 1:            
@@ -295,5 +344,12 @@ if __name__ == "__main__":
         if robot_goal is not None:
             if cnt % 10 == 0: 
                 sendGoal(screen2pos(*robot_goal))
+        
+        # view image
+        if view_image:
+            cv2.imshow('Robot Image', robot_img)
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                view_image = False
+                cv2.destroyAllWindows()
 
         pygame.display.update()
