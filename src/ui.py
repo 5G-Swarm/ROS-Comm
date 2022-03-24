@@ -11,6 +11,7 @@ import time
 import sys
 import math
 import cv2
+from shapely.geometry import Polygon
 
 from informer import Informer
 from proto.python_out import marker_pb2, geometry_msgs_pb2, path_msgs_pb2, cmd_msgs_pb2
@@ -46,7 +47,7 @@ robot_goal = None
 robot_pos = []
 robot_heading = []
 robot_cmd = []
-bounding_box = []
+bounding_box = dict()
 path_pos = []
 clicked_id = 0
 robot_img = None
@@ -85,14 +86,13 @@ class Receiver(object):
             
 def parse_message(message):
     global bounding_box
-    bounding_box = []
     marker_list = marker_pb2.MarkerList()
     marker_list.ParseFromString(message)
     MAP_WIDTH, MAP_HEIGHT = DISPLAY_MAP.get_size()
     offset = np.array([WINDOW_WIDTH//2 - MAP_WIDTH//2, WINDOW_HEIGHT//2 - MAP_HEIGHT//2])
     for marker in marker_list.marker_list:
-        center_pos = np.array([int(1165 - marker.pose.position.y*20), int(741-20*marker.pose.position.x)]) + offset
         try:
+            center_pos = np.array([int(1165 - marker.pose.position.y*20), int(741-20*marker.pose.position.x)]) + offset
             orientation = R.from_quat([marker.pose.orientation.x, marker.pose.orientation.y, marker.pose.orientation.z, marker.pose.orientation.w]).as_euler('xyz', degrees=False)[2]
             orientation += np.pi / 2
             height, width = 10*marker.scale.x, 10*marker.scale.y
@@ -100,10 +100,19 @@ def parse_message(message):
             vertex_B = center_pos + height*np.array([np.cos(orientation), np.sin(orientation)]) - width*np.array([-np.sin(orientation), np.cos(orientation)])
             vertex_C = center_pos - height*np.array([np.cos(orientation), np.sin(orientation)]) - width*np.array([-np.sin(orientation), np.cos(orientation)])
             vertex_D = center_pos - height*np.array([np.cos(orientation), np.sin(orientation)]) + width*np.array([-np.sin(orientation), np.cos(orientation)])
-            bounding_box.append(np.array([vertex_A, vertex_B, vertex_C, vertex_D]))
+            marker_id = marker.id
+            new_box = np.array([vertex_A, vertex_B, vertex_C, vertex_D])
+            # overlap filter
+            overlap = False
+            p1 = Polygon(new_box)
+            for id, pos in bounding_box.items():
+                p2 = Polygon(pos)
+                if p1.intersects(p2) and id != marker_id:
+                    overlap = True
+                    break
+            if not overlap:
+                bounding_box[marker_id] = np.array(new_box)
         except:
-            orientation = 0
-            height, width = 50, 30
             pass
         # print(bounding_box)
 
@@ -188,7 +197,7 @@ def drawGoal():
 
 
 def drawBoundingBox():
-    for pos in bounding_box:
+    for _, pos in bounding_box.items():
         # x, y = pos + map_offset
         # pygame.draw.rect(SCREEN, BLUE, pygame.Rect(x, y, 60, 100), 10)
         pygame.draw.lines(SCREEN, BLUE, True, pos + map_offset, 10)
