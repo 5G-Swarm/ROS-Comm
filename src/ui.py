@@ -9,6 +9,7 @@ import socket
 import threading
 import time
 import sys
+import math
 
 from informer import Informer
 from proto.python_out import marker_pb2, geometry_msgs_pb2, path_msgs_pb2, cmd_msgs_pb2
@@ -24,7 +25,7 @@ RED = (255, 0, 0)
 WHITE = (255, 255, 255)
 WINDOW_WIDTH = 2000
 WINDOW_HEIGHT = 2000
-ROBOT_SIZE = 10
+ROBOT_SIZE = 20
 BUTTON_WIDTH = 300
 BUTTON_HEIGHT = 100
 BUTTON_LIGHT = (170, 170, 170)
@@ -33,13 +34,10 @@ BUTTON_GOAL_X = 50
 BUTTON_GOAL_Y = 50
 BUTTON_LASER_X = 50
 BUTTON_LASER_Y = 200
-BUTTON_BAIDU_X = 50
-BUTTON_BAIDU_Y = 350
 BUTTON_SATELLITE_X = 50
-BUTTON_SATELLITE_Y = 500
+BUTTON_SATELLITE_Y = 350
 # read map
 LASER_MAP = pygame.image.load('./maps/laser_map.jpg')
-BAIDU_MAP = pygame.image.load('./maps/baidu_map.png')
 SATELLITE_MAP = pygame.image.load('./maps/satellite_map.png')
 DISPLAY_MAP = LASER_MAP
 map_offset = np.array([0, 0])
@@ -171,12 +169,12 @@ def pos2screen(x, y):
 
 def drawRobots():
     for pos, heading, cmd in zip(robot_pos, robot_heading, robot_cmd):
-        pygame.draw.circle(SCREEN, GREEN, pos + map_offset, int(ROBOT_SIZE*2))
-        pygame.draw.line(SCREEN, BLUE, pos + map_offset, pos + map_offset + 100*cmd[0]*np.array([np.cos(heading+np.pi/2), np.sin(heading+np.pi/2)]), 5)
+        pygame.draw.circle(SCREEN, GREEN, pos + map_offset, ROBOT_SIZE)
+        pygame.draw.line(SCREEN, BLUE, pos + map_offset, pos + map_offset + min(max(40*cmd[0], 25), 40)*np.array([np.cos(heading+np.pi/2), np.sin(heading+np.pi/2)]), 5)
         
 def drawGoal():
     if robot_goal is not None:
-        # pygame.draw.circle(SCREEN, GREEN, robot_goal + map_offset, int(ROBOT_SIZE*2))
+        # pygame.draw.circle(SCREEN, GREEN, robot_goal + map_offset, ROBOT_SIZE)
         cicle = (robot_goal + map_offset)
         marker_size = 20
         width = 10
@@ -215,13 +213,6 @@ def drawButton():
     else:
         pygame.draw.rect(SCREEN, BUTTON_DARK, [BUTTON_LASER_X, BUTTON_LASER_Y, BUTTON_WIDTH, BUTTON_HEIGHT])
     SCREEN.blit(text, (BUTTON_LASER_X+60, BUTTON_LASER_Y+25))
-    # button: baidu map
-    text = FONT.render('BAIDU', True, WHITE)
-    if BUTTON_BAIDU_X <= mouse[0] <= BUTTON_BAIDU_X + BUTTON_WIDTH and BUTTON_BAIDU_Y <= mouse[1] <= BUTTON_BAIDU_Y + BUTTON_HEIGHT:
-        pygame.draw.rect(SCREEN, BUTTON_LIGHT, [BUTTON_BAIDU_X, BUTTON_BAIDU_Y, BUTTON_WIDTH, BUTTON_HEIGHT])
-    else:
-        pygame.draw.rect(SCREEN, BUTTON_DARK, [BUTTON_BAIDU_X, BUTTON_BAIDU_Y, BUTTON_WIDTH, BUTTON_HEIGHT])
-    SCREEN.blit(text, (BUTTON_BAIDU_X+65, BUTTON_BAIDU_Y+25))
     # button: satellite map
     text = FONT.render('SATELLITE', True, WHITE)
     if BUTTON_SATELLITE_X <= mouse[0] <= BUTTON_SATELLITE_X + BUTTON_WIDTH and BUTTON_SATELLITE_Y <= mouse[1] <= BUTTON_SATELLITE_Y + BUTTON_HEIGHT:
@@ -240,6 +231,9 @@ def drawMaps():
 if __name__ == "__main__":
     pygame.init()
     SCREEN = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))#, pygame.RESIZABLE)
+    pygame.display.set_caption('5G Monitor')
+    # icon = pygame.image.load('*.png')
+    # pygame.display.set_icon(icon)
     CLOCK = pygame.time.Clock()
     SCREEN.fill(GREY)
     data_receiver = Receiver()
@@ -280,12 +274,14 @@ if __name__ == "__main__":
                 # button: laser map
                 elif BUTTON_LASER_X <= mouse[0] <= BUTTON_LASER_X + BUTTON_WIDTH and BUTTON_LASER_Y <= mouse[1] <= BUTTON_LASER_Y + BUTTON_HEIGHT:
                     DISPLAY_MAP = LASER_MAP
-                # button: baidu map
-                elif BUTTON_BAIDU_X <= mouse[0] <= BUTTON_BAIDU_X + BUTTON_WIDTH and BUTTON_BAIDU_Y <= mouse[1] <= BUTTON_BAIDU_Y + BUTTON_HEIGHT:
-                    DISPLAY_MAP = BAIDU_MAP
                 # button: satellite map
                 elif BUTTON_SATELLITE_X <= mouse[0] <= BUTTON_SATELLITE_X + BUTTON_WIDTH and BUTTON_SATELLITE_Y <= mouse[1] <= BUTTON_SATELLITE_Y + BUTTON_HEIGHT:
                     DISPLAY_MAP = SATELLITE_MAP
+                # button: robot
+                for pos in robot_pos:
+                    if math.dist(mouse, pos + map_offset) <= ROBOT_SIZE:
+                        print('click')
+                        break
             elif event.type == pygame.MOUSEBUTTONUP and mods & pygame.KMOD_CTRL:
                 if event.button == 1:            
                     map_draging = False
