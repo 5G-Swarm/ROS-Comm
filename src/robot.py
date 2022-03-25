@@ -7,6 +7,10 @@ from visualization_msgs.msg import MarkerArray
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Pose2D, Twist
 from ros_comm.msg import Pose2DArray
+from autoware_msgs.msg import TrackingObjectMarker, TrackingObjectMarkerArray
+
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
 
 import time
 from informer import Informer
@@ -47,32 +51,34 @@ class Client(Informer):
         except:
             print('recv path timeout !')
 
-def ros_marker2pb(ros_marker):
+def ros_marker2pb(ros_marker : TrackingObjectMarker):
     marker = marker_pb2.Marker()
-    marker.id = ros_marker.id
-    marker.pose.position.x = ros_marker.pose.position.x
-    marker.pose.position.y = ros_marker.pose.position.y
-    marker.pose.position.z = ros_marker.pose.position.z
-    marker.pose.orientation.x = ros_marker.pose.orientation.x
-    marker.pose.orientation.y = ros_marker.pose.orientation.y
-    marker.pose.orientation.z = ros_marker.pose.orientation.z
-    marker.pose.orientation.w = ros_marker.pose.orientation.w
-    marker.scale.x = ros_marker.scale.x
-    marker.scale.y = ros_marker.scale.y
-    marker.scale.z = ros_marker.scale.z
-    marker.color.r = ros_marker.color.r
-    marker.color.g = ros_marker.color.g
-    marker.color.b = ros_marker.color.b
+    # type: TrackingObjectMarker
+    marker.time_stamp = ros_marker.header.stamp.secs
+    marker.id = ros_marker.track_id
+    marker.pose.position.x = ros_marker.marker.pose.position.x
+    marker.pose.position.y = ros_marker.marker.pose.position.y
+    marker.pose.position.z = ros_marker.marker.pose.position.z
+    marker.pose.orientation.x = ros_marker.marker.pose.orientation.x
+    marker.pose.orientation.y = ros_marker.marker.pose.orientation.y
+    marker.pose.orientation.z = ros_marker.marker.pose.orientation.z
+    marker.pose.orientation.w = ros_marker.marker.pose.orientation.w
+    marker.scale.x = ros_marker.marker.scale.x
+    marker.scale.y = ros_marker.marker.scale.y
+    marker.scale.z = ros_marker.marker.scale.z
+    marker.color.r = ros_marker.marker.color.r
+    marker.color.g = ros_marker.marker.color.g
+    marker.color.b = ros_marker.marker.color.b
     return marker
 
-def parse_ros_marker_list(ros_marker_array):
+def parse_ros_marker_list(ros_marker_array: TrackingObjectMarkerArray):
     marker_list = marker_pb2.MarkerList()
     for ros_mark in ros_marker_array.markers:
         mark = ros_marker2pb(ros_mark)
         marker_list.marker_list.append(mark)
     return marker_list
 
-def callback_mark_array(ros_marker_array):
+def callback_mark_array(ros_marker_array: TrackingObjectMarkerArray):
     marker_list = parse_ros_marker_list(ros_marker_array)
     sent_data = marker_list.SerializeToString()
     # print('send', len(sent_data))
@@ -106,17 +112,27 @@ def callback_odometry(odometry):
 def callback_cmd(ros_cmd):
     cmd = ros_cmd2pb(ros_cmd)
     sent_data = cmd.SerializeToString()
-    # print('send cmd', len(sent_data))
     ifm.send_cmd(sent_data)
+
+def callback_img(ros_img):
+    bridge = CvBridge()
+    try:
+      cv_image = bridge.imgmsg_to_cv2(ros_img, "bgr8")
+    except:
+      cv_image = bridge.imgmsg_to_cv2(ros_img)
+    print(cv_image.shape)
+    # sent_data = cv_image
+    # ifm.send_cmd(sent_data)
 
 if __name__ == '__main__':
     rospy.init_node('5g-transfer', anonymous=True)
-    rospy.Subscriber('/detection/lidar_detector/objects_markers', MarkerArray, callback_mark_array)
-    rospy.Subscriber('/base2map', Odometry, callback_odometry)
+    ifm = Client(cfg_robot1)
+    path_pub = rospy.Publisher('global_path', Pose2DArray, queue_size=0)
+    rospy.Subscriber('/detection/lidar_detector/objects_markers_withID', TrackingObjectMarkerArray, callback_mark_array)
+    rospy.Subscriber('/base2odometry', Odometry, callback_odometry)
+    rospy.Subscriber('/camera/color/image_raw', Image, callback_img)
     rospy.Subscriber('/cmd_vel', Twist, callback_cmd)
 
-    path_pub = rospy.Publisher('global_path', Pose2DArray, queue_size=0)
-    ifm = Client(cfg_robot1)
     # rospy.spin()
     rate = rospy.Rate(1000)
     while not rospy.is_shutdown():

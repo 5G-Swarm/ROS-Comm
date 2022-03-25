@@ -8,10 +8,11 @@ message MarkerList{
 }
 
 message Marker{
-    uint32 id               = 1;
-    Pose pose               = 2;
-    Scale scale             = 3;
-    Color color             = 4;
+    double time_stamp       = 1;
+    uint32 id               = 2;
+    Pose pose               = 3;
+    Scale scale             = 4;
+    Color color             = 5;
 }
 
 message Pose{

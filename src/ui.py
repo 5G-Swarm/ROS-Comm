@@ -40,7 +40,7 @@ BUTTON_SATELLITE_X = 50
 BUTTON_SATELLITE_Y = 350
 # read map
 LASER_MAP = pygame.image.load('./maps/laser_map.jpg')
-SATELLITE_MAP = pygame.image.load('./maps/satellite_map.png')
+SATELLITE_MAP = pygame.image.load('./maps/satellite_map.jpg')
 DISPLAY_MAP = LASER_MAP
 map_offset = np.array([0, 0])
 robot_goal = None
@@ -94,7 +94,7 @@ def parse_message(message):
     offset = np.array([WINDOW_WIDTH//2 - MAP_WIDTH//2, WINDOW_HEIGHT//2 - MAP_HEIGHT//2])
     for marker in marker_list.marker_list:
         try:
-            center_pos = np.array([int(1165 - marker.pose.position.y*20), int(741-20*marker.pose.position.x)]) + offset
+            center_pos = np.array([int(marker.pose.position.y*(-20)+2089), int(2949-20*marker.pose.position.x)]) + offset
             orientation = R.from_quat([marker.pose.orientation.x, marker.pose.orientation.y, marker.pose.orientation.z, marker.pose.orientation.w]).as_euler('xyz', degrees=False)[2]
             orientation += np.pi / 2
             height, width = 10*marker.scale.x, 10*marker.scale.y
@@ -124,8 +124,8 @@ def parse_odometry(message):
     odometry.ParseFromString(message)
     MAP_WIDTH, MAP_HEIGHT = DISPLAY_MAP.get_size()
     offset = np.array([WINDOW_WIDTH//2 - MAP_WIDTH//2, WINDOW_HEIGHT//2 - MAP_HEIGHT//2])
-    robot_pos = [np.array([int(odometry.position.y*20+1165), int(741-20*odometry.position.x)]) + offset]
-    robot_heading = [R.from_quat([odometry.orientation.x, odometry.orientation.y, odometry.orientation.z, odometry.orientation.w]).as_euler('xyz', degrees=False)[1]]
+    robot_pos = [np.array([int(odometry.position.y*(-20)+2089), int(2949-20*odometry.position.x)]) + offset]
+    robot_heading = [R.from_quat([odometry.orientation.x, odometry.orientation.y, odometry.orientation.z, odometry.orientation.w]).as_euler('xyz', degrees=False)[2]]
     # print(robot_pos)
 
 def parse_cmd(message):
@@ -133,7 +133,7 @@ def parse_cmd(message):
     # print('grt cmd !!!')
     cmd = cmd_msgs_pb2.Cmd()
     cmd.ParseFromString(message)
-    robot_cmd = [[cmd.v, cmd.w]]
+    robot_cmd = [[0,0]]# [[cmd.v, cmd.w]]
 
 def send_path(path_list):
     global ifm
@@ -186,7 +186,7 @@ def pos2screen(x, y):
 def drawRobots():
     for pos, heading, cmd in zip(robot_pos, robot_heading, robot_cmd):
         pygame.draw.circle(SCREEN, GREEN, pos + map_offset, ROBOT_SIZE)
-        pygame.draw.line(SCREEN, BLUE, pos + map_offset, pos + map_offset + min(max(40*cmd[0], 25), 40)*np.array([np.cos(heading+np.pi/2), np.sin(heading+np.pi/2)]), 5)
+        pygame.draw.line(SCREEN, BLUE, pos + map_offset, pos + map_offset + min(max(40*cmd[0], 25), 40)*np.array([np.cos(heading+np.pi/2), -np.sin(heading+np.pi/2)]), 5)
         
 def drawGoal():
     if robot_goal is not None:
