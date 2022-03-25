@@ -11,7 +11,7 @@ import time
 import sys
 import math
 import cv2
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point
 
 from informer import Informer
 from proto.python_out import marker_pb2, geometry_msgs_pb2, path_msgs_pb2, cmd_msgs_pb2
@@ -25,8 +25,8 @@ BLUE = (0, 0, 255)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
-WINDOW_WIDTH = 2000
-WINDOW_HEIGHT = 2000
+WINDOW_WIDTH = 1920
+WINDOW_HEIGHT = 1080
 ROBOT_SIZE = 20
 BUTTON_WIDTH = 300
 BUTTON_HEIGHT = 100
@@ -49,13 +49,15 @@ robot_heading = []
 robot_cmd = []
 bounding_box = dict()
 path_pos = []
-clicked_id = 0
+robot_clicked_id = None
 robot_img = None
+box_clicked_id = None
 # flags
 map_draging = False
 goal_setting = False
 robot_clicked = False
 view_image = False
+box_clicked = False
 
 class Receiver(object):
     def __init__(self, addr=HOST_ADDRESS, port=23333):
@@ -197,7 +199,8 @@ def drawGoal():
 
 
 def drawBoundingBox():
-    for _, pos in bounding_box.items():
+    bounding_box_copy = bounding_box.copy()
+    for _, pos in bounding_box_copy.items():
         # x, y = pos + map_offset
         # pygame.draw.rect(SCREEN, BLUE, pygame.Rect(x, y, 60, 100), 10)
         pygame.draw.lines(SCREEN, BLUE, True, pos + map_offset, 10)
@@ -236,30 +239,39 @@ def drawButton():
     SCREEN.blit(text, (BUTTON_SATELLITE_X+10, BUTTON_SATELLITE_Y+25))
 
 def drawMessageBox():
+    # font settings
+    FONT = pygame.font.SysFont('Corbel', 75)
+
+    # get mouse position
+    mouse = pygame.mouse.get_pos()
+
     if robot_clicked:
-        # font settings
-        FONT = pygame.font.SysFont('Corbel', 75)
-
-        # get mouse position
-        mouse = pygame.mouse.get_pos()
-
         # box
-        BOX_X, BOX_Y = robot_pos[clicked_id] + map_offset + np.array([25, -265])
-        BOX_WIDTH, BOX_HEIGHT = 350, 250
+        BOX_X, BOX_Y = robot_pos[robot_clicked_id] + map_offset + np.array([25, -150])
+        BOX_WIDTH, BOX_HEIGHT = 350, 150
         BOX_COLOR = (255, 255, 255)
         pygame.draw.rect(SCREEN, BOX_COLOR, [BOX_X, BOX_Y, BOX_WIDTH, BOX_HEIGHT])
 
         # button: view image
         text = FONT.render('View Image', True, WHITE)
-        BUTTON_IMAGE_X, BUTTON_IMAGE_Y = robot_pos[clicked_id] + map_offset + np.array([50, -250])
+        BUTTON_IMAGE_X, BUTTON_IMAGE_Y = robot_pos[robot_clicked_id] + map_offset + np.array([50, -125])
         if BUTTON_IMAGE_X <= mouse[0] <= BUTTON_IMAGE_X + BUTTON_WIDTH and BUTTON_IMAGE_Y <= mouse[1] <= BUTTON_IMAGE_Y + BUTTON_HEIGHT:
             pygame.draw.rect(SCREEN, BUTTON_LIGHT, [BUTTON_IMAGE_X, BUTTON_IMAGE_Y, BUTTON_WIDTH, BUTTON_HEIGHT])
         else:
             pygame.draw.rect(SCREEN, BUTTON_DARK, [BUTTON_IMAGE_X, BUTTON_IMAGE_Y, BUTTON_WIDTH, BUTTON_HEIGHT])
         SCREEN.blit(text, (BUTTON_IMAGE_X+10, BUTTON_IMAGE_Y+25))
+
+    if box_clicked:
+        # box
+        box_center = np.mean(bounding_box[box_clicked_id], axis=0)
+        BOX_X, BOX_Y = box_center + map_offset + np.array([25, -150])
+        BOX_WIDTH, BOX_HEIGHT = 350, 150
+        BOX_COLOR = (255, 255, 255)
+        pygame.draw.rect(SCREEN, BOX_COLOR, [BOX_X, BOX_Y, BOX_WIDTH, BOX_HEIGHT])
+
         # button: get id
         text = FONT.render('Get ID', True, WHITE)
-        BUTTON_ID_X, BUTTON_ID_Y = robot_pos[clicked_id] + map_offset + np.array([50, -125])
+        BUTTON_ID_X, BUTTON_ID_Y = box_center + map_offset + np.array([50, -125])
         if BUTTON_ID_X <= mouse[0] <= BUTTON_ID_X + BUTTON_WIDTH and BUTTON_ID_Y <= mouse[1] <= BUTTON_ID_Y + BUTTON_HEIGHT:
             pygame.draw.rect(SCREEN, BUTTON_LIGHT, [BUTTON_ID_X, BUTTON_ID_Y, BUTTON_WIDTH, BUTTON_HEIGHT])
         else:
@@ -290,6 +302,7 @@ if __name__ == "__main__":
 
     cnt = 0
     while True:
+        start_time = time.time()
         cnt += 1
         SCREEN.fill(GREY)
         drawMaps()
@@ -327,18 +340,33 @@ if __name__ == "__main__":
                 # button: robot
                 if robot_clicked:
                     # button: view image
-                    BUTTON_IMAGE_X, BUTTON_IMAGE_Y = robot_pos[clicked_id] + map_offset + np.array([50, -250])
-                    BUTTON_ID_X, BUTTON_ID_Y = robot_pos[clicked_id] + map_offset + np.array([50, -125])
+                    BUTTON_IMAGE_X, BUTTON_IMAGE_Y = robot_pos[robot_clicked_id] + map_offset + np.array([50, -125])
                     if BUTTON_IMAGE_X <= mouse[0] <= BUTTON_IMAGE_X + BUTTON_WIDTH and BUTTON_IMAGE_Y <= mouse[1] <= BUTTON_IMAGE_Y + BUTTON_HEIGHT:
                         view_image = True
                         print('show image')
-                    elif BUTTON_ID_X <= mouse[0] <= BUTTON_ID_X + BUTTON_WIDTH and BUTTON_ID_Y <= mouse[1] <= BUTTON_ID_Y + BUTTON_HEIGHT:
-                        print('get id')
                 robot_clicked = False
-                for pos in robot_pos:
+                for idx, pos in enumerate(robot_pos):
                     if math.hypot(mouse[0] - (pos + map_offset)[0], mouse[1] - (pos + map_offset)[1]) <= ROBOT_SIZE:
-                        print('click')
+                        print('click robot {}'.format(idx))
                         robot_clicked = True
+                        robot_clicked_id = idx
+                        break
+                # button: bounding box
+                if box_clicked:
+                    # button: get id
+                    box_center = np.mean(bounding_box[box_clicked_id], axis=0)
+                    BUTTON_ID_X, BUTTON_ID_Y = box_center + map_offset + np.array([50, -125])
+                    if BUTTON_ID_X <= mouse[0] <= BUTTON_ID_X + BUTTON_WIDTH and BUTTON_ID_Y <= mouse[1] <= BUTTON_ID_Y + BUTTON_HEIGHT:
+                        print('get id')
+                box_clicked = False
+                bounding_box_copy = bounding_box.copy()
+                for idx, box in bounding_box_copy.items():
+                    p1 = Point(mouse)
+                    p2 = Polygon(box + map_offset)
+                    if p2.contains(p1):
+                        print('click box {}'.format(idx))
+                        box_clicked = True
+                        box_clicked_id = idx
                         break
             elif event.type == pygame.MOUSEBUTTONUP and mods & pygame.KMOD_CTRL:
                 if event.button == 1:            
@@ -355,10 +383,12 @@ if __name__ == "__main__":
                 sendGoal(screen2pos(*robot_goal))
         
         # view image
-        if view_image:
+        if view_image and robot_img is not None:
             cv2.imshow('Robot Image', robot_img)
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 view_image = False
                 cv2.destroyAllWindows()
 
         pygame.display.update()
+        end_time = time.time()
+        # print('frequency', 1/(end_time-start_time))
