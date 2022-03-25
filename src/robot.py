@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+import ctypes
+libgcc_s = ctypes.CDLL('/lib/x86_64-linux-gnu/libgcc_s.so.1')
+
 import cv2
 import numpy as np
 import rospy
@@ -10,7 +13,6 @@ from ros_comm.msg import Pose2DArray
 from autoware_msgs.msg import TrackingObjectMarker, TrackingObjectMarkerArray
 
 from sensor_msgs.msg import Image
-from cv_bridge import CvBridge
 
 import time
 from informer import Informer
@@ -103,7 +105,6 @@ def ros_cmd2pb(ros_cmd):
     return cmd
 
 def callback_odometry(odometry):
-    # print(odometry)
     pose = ros_odometry2pb(odometry)
     sent_data = pose.SerializeToString()
     # print('send', len(sent_data))
@@ -115,12 +116,14 @@ def callback_cmd(ros_cmd):
     ifm.send_cmd(sent_data)
 
 def callback_img(ros_img):
-    bridge = CvBridge()
-    try:
-      cv_image = bridge.imgmsg_to_cv2(ros_img, "bgr8")
-    except:
-      cv_image = bridge.imgmsg_to_cv2(ros_img)
-    print(cv_image.shape)
+    global bridge
+
+    img = np.ndarray(shape=(480, 640, 3), dtype=np.dtype("uint8"), buffer=ros_img.data)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    cv2.imshow('img', img)
+    cv2.waitKey(2)
+
+    # print(cv_image.shape)
     # sent_data = cv_image
     # ifm.send_cmd(sent_data)
 
