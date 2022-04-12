@@ -60,20 +60,23 @@ view_image = False
 box_clicked = False
 
 class Receiver(object):
-    def __init__(self, addr=HOST_ADDRESS, port=23333):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.addr = addr
-        self.port = port
-        self.sock.settimeout(1.0)
-        self.sock.bind((self.addr, self.port))
-        self.thread = threading.Thread(target=self.receive_data)
-        self.thread.start()
+    def __init__(self):
+        self.path_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.path_sock.settimeout(1.0)
+        self.path_sock.bind((HOST_ADDRESS, 23333))
+        self.path_thread = threading.Thread(target=self.receive_path)
+        self.path_thread.start()
+        self.gesture_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.gesture_sock.settimeout(1.0)
+        self.gesture_sock.bind((HOST_ADDRESS, 23335))
+        self.gesture_thread = threading.Thread(target=self.receive_gesture)
+        self.gesture_thread.start()
         self.timeout = False
 
-    def receive_data(self):
+    def receive_path(self):
         while True:
             try:
-                data, _ = self.sock.recvfrom(4096)
+                data, _ = self.path_sock.recvfrom(4096)
                 data = data.decode("utf-8").split(';')
                 MAP_WIDTH, MAP_HEIGHT = DISPLAY_MAP.get_size()
                 offset = np.array([WINDOW_WIDTH//2 - MAP_WIDTH//2, WINDOW_HEIGHT//2 - MAP_HEIGHT//2])
@@ -81,6 +84,17 @@ class Receiver(object):
                 path_pos = np.array([np.array([float(pos.split(',')[0]), float(pos.split(',')[1])]) + offset
                             for pos in data if pos != ''])
                 # print(path_pos, len(path_pos))
+                self.timeout = False
+            except socket.timeout:
+                self.timeout = True
+            time.sleep(0.01)
+    
+    def receive_gesture(self):
+        while True:
+            try:
+                data, _ = self.gesture_sock.recvfrom(4096)
+                gesture = data.decode("utf-8")
+                # print(gesture)
                 self.timeout = False
             except socket.timeout:
                 self.timeout = True
@@ -291,8 +305,8 @@ if __name__ == "__main__":
     pygame.init()
     SCREEN = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))#, pygame.RESIZABLE)
     pygame.display.set_caption('5G Monitor')
-    # icon = pygame.image.load('*.png')
-    # pygame.display.set_icon(icon)
+    icon = pygame.image.load('icon.png')
+    pygame.display.set_icon(icon)
     CLOCK = pygame.time.Clock()
     SCREEN.fill(GREY)
     data_receiver = Receiver()
